@@ -1,11 +1,7 @@
 import sys
-import getopt
-from vec import Vec
-from mat import Mat
 from vecutil import list2vec, vec2list
-from matutil import identity, listlist2mat
+from matutil import listlist2mat
 from GF2 import one
-from math import floor
 
 golay24mat = listlist2mat([[one, one, 0, 0, 0, one, one, one, 0, one, 0, one],
               [0, one, one, 0, 0, 0, one, one, one, 0, one, one],
@@ -75,7 +71,7 @@ def ambeModGen(seed, length):
     return [n // 32768 for n in modVec]
 
 
-def dstarInterleave(blk0, blk1, blk2, blk3):
+def dstarInterleave(blk0, blk1, blk2):
     bit_count = 0;
     bit_array = [0]*72
     
@@ -89,14 +85,11 @@ def dstarInterleave(blk0, blk1, blk2, blk3):
     for i in range(24):
         output[bit_array[counter]] = blk0[i]
         counter += 1
-    for i in range(23):
+    for i in range(24):
         output[bit_array[counter]] = blk1[i]
         counter += 1
-    for i in range(11):
+    for i in range(24):
         output[bit_array[counter]] = blk2[i]
-        counter += 1
-    for i in range(14):
-        output[bit_array[counter]] = blk3[i]
         counter += 1
         
     return output
@@ -116,21 +109,24 @@ while True:
     
     # parse a line of input
     instr = infile.readline();
-    if len(instr) != 50:
+    if len(instr) != 50 and len(instr) != 49:
         break
     # transfer the data into an array
     indata = [int(x) for x in instr if x.isdigit()]
     # break into four fields
+
+    if len(indata) == 49:
+        indata.pop(24)
+
     u0 = indata[0:12]
     u1 = indata[12:24]
-    u2 = indata[24:35]
-    u3 = indata[35:]
+    u2 = indata[24:]
     
     # encode u0
     c0 = golay24Encode(u0)
     
     # encode u1
-    intermediate_c1 = golay23Encode(u1)
+    intermediate_c1 = golay24Encode(u1)
     
     # apply PRNG output seeded by u0 to intermediate_c1
     seed = (u0[0] << 11 |
@@ -146,15 +142,14 @@ while True:
            u0[10] << 1 |
            u0[11])
 
-    modArray = ambeModGen(seed, 23)
+    modArray = ambeModGen(seed, 24)
     # this is also over GF(2)
-    c1 = GF2toBitArray( vec2list(list2vec(bitArrayToGF2(intermediate_c1)) + list2vec(bitArrayToGF2(modArray))))
-    # just copy u2->c2 and u3->c3
+    c1 = GF2toBitArray(vec2list(list2vec(bitArrayToGF2(intermediate_c1)) + list2vec(bitArrayToGF2(modArray))))
+    # just copy u2->c2
     c2 = u2
-    c3 = u3
 
-    output = dstarInterleave(c0, c1, c2, c3)
-    
+    output = dstarInterleave(c0, c1, c2)
+
     # convert output to a BYTE array
     byteoutput = []
     for n in range(9):
