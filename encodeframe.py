@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 from vecutil import list2vec, vec2list
 from matutil import listlist2mat
